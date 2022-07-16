@@ -48,7 +48,7 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   return action;
 }
 
-int run_basic_action(struct user_action action){
+int run_action(struct user_action action){
   if (strcmp(action.command, "exit") == 0){
     exit(0);
   }
@@ -64,7 +64,7 @@ int run_basic_action(struct user_action action){
     printf("%i\n", 0);
   }
   else{
-    
+    new_proscess(action);
   }
   return(0);
 }
@@ -76,7 +76,7 @@ int main(void) {
     fgets(input_buffer, 2048, stdin);
     if (input_buffer[0] == ':'){
       action = process_buffer(input_buffer, action);
-      run_basic_action(action);
+      run_action(action);
     }
     else if (input_buffer[0] == '#' || input_buffer[0] == '\n'){
       // How do you want reprompt
