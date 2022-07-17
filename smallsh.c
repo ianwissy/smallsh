@@ -15,15 +15,15 @@ struct user_action{
   int arg_count;
 }; 
 
-const char* translate(char* input_word) {
+char* translate(char* input_word) {
   char* strstr_input;
   int $$count = 0;
   while ((strstr_input = strstr(input_word, "$$")) != NULL){
     $$count += 1;
     strstr_input += 2;
   }
-  int pid_num = getpid();
-  char pid[(int)(log10(pid_num)) + 1];
+  int pid_len = (int) log10(getpid()) + 1;
+  char pid[pid_len];
   sprintf(pid, "%d", getpid());
   char* new_word =  malloc(strlen(input_word) + $$count*(strlen(pid) - 2) + 1);
   int last$ = 0;
@@ -67,35 +67,35 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   action.arg_count = 0;
   action.foreground = 1;
   while ((input = strtok(NULL, " \n")) != NULL){
-      const char* trans_input = translate(input);
-      if(flag == '<'){
-        action.in_file = trans_input;
-        flag = 0;
-      }
-      else if(flag == '>'){
-        action.out_file = trans_input;
-        flag = 0;
-      }
-      else if(strcmp(input, ">") == 0){
-        flag = '>';
-      }
-      else if(strcmp(input, "<") == 0){
-        flag = '<';
-      }
-      else if(strcmp(input, "&") == 0){
-        action.foreground = 0;
+    char* trans_input = translate(input);
+    if(flag == '<'){
+      action.in_file = trans_input;
+      flag = 0;
+    }
+    else if(flag == '>'){
+       action.out_file = trans_input;
+      flag = 0;
+    }
+    else if(strcmp(input, ">") == 0){
+      flag = '>';
+    }
+    else if(strcmp(input, "<") == 0){
+      flag = '<';
+    }
+    else if(strcmp(input, "&") == 0){
+      action.foreground = 0;
+    }
+    else{
+      if (action.arg_count < 512){
+        action.args[action.arg_count] = trans_input;
+        action.arg_count += 1;
       }
       else{
-        if (action.arg_count < 512){
-          action.args[action.arg_count] = trans_input;
-          action.arg_count += 1;
-        }
-        else{
-          fprintf(stderr,"%s\n", "Too many arguments");
-          fflush(stderr);
-          exit(1);
-        }
+        fprintf(stderr,"%s\n", "Too many arguments");
+        fflush(stderr);
+        exit(1);
       }
+    }
   }
   return action;
 }
