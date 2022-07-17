@@ -28,7 +28,7 @@ char* translate(char* input_word) {
   char* new_word =  malloc(strlen(input_word) + $$count*(strlen(pid) - 2) + 1);
   int last$ = 0;
   int j = 0;
-  for (int i=0; i < strlen(input_word); i++){
+  for (unsigned int i=0; i < strlen(input_word); i++){
     if (input_word[i] != '$' && last$ == 1){
       last$ = 0;
       new_word[j] = '$';
@@ -37,7 +37,7 @@ char* translate(char* input_word) {
     }
     else if(input_word[i] == '$' && last$ == 1){
       last$ = 0;
-      for (int k = 0; k < strlen(pid); k++){
+      for (unsigned int k = 0; k < strlen(pid); k++){
         new_word[j] = pid[k];
         j += 1;
       }
@@ -55,7 +55,9 @@ char* translate(char* input_word) {
     j += 1;
   }
   new_word[j] = '\0';
-  return(new_word);
+  strcpy(input_word, new_word);
+  free(new_word);
+  return(input_word);
 }
 
 struct user_action process_buffer(char* input_buffer, struct user_action action){
