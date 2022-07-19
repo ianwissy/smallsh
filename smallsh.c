@@ -44,16 +44,18 @@ void handle_SIGCHILD(int signo){
   int status;
   char message[60];
   pid_t pid;
-  pid = waitpid(0, &status, WNOHANG);
+  pid = waitpid(0, &status, 0);
   if (pid != -1 && pid != 0){
     if(WIFEXITED(status)){
-		  sprintf(message, "background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
+      strcat(background_messages, "background pid %d is done: exit value %d\n");
+		  //sprintf(message, "background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
 	  } 
     else{
-		  sprintf(message,"background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
+      strcat(background_messages, "background pid %d is done: terminated by signal %d\n");
+		  //sprintf(message,"background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
 	  }
   }
-  strcat(background_messages, message);
+  //strcat(background_messages, message);
 }
 
 
