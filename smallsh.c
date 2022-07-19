@@ -90,16 +90,16 @@ int redirect(struct user_action action){
 }
 
 char* translate(char* input_word) {
-  char* strstr_input;
+  char* strstr_input = input_word;
   int $$count = 0;
-  while ((strstr_input = strstr(input_word, "$$")) != NULL){
+  while ((strstr_input = strstr(strstr_input, "$$")) != NULL){
     $$count += 1;
     strstr_input += 2;
   }
   int pid_len = (int) log10(getpid()) + 1;
   char pid[pid_len];
   sprintf(pid, "%d", getpid());
-  char* new_word =  malloc(strlen(input_word) + $$count*(strlen(pid) - 2) + 1);
+  char* new_word = malloc(strlen(input_word) + $$count*(strlen(pid) - 2) + 1);
   int last$ = 0;
   int j = 0;
   for (unsigned int i=0; i < strlen(input_word); i++){
@@ -129,28 +129,25 @@ char* translate(char* input_word) {
     j += 1;
   }
   new_word[j] = '\0';
-  strcpy(input_word, new_word);
-  free(new_word);
-  return(input_word);
+  return new_word;
 }
 
 struct user_action process_buffer(char* input_buffer, struct user_action action){
   action.command = strtok(input_buffer, " \n");
   action.in_file = "";
   action.out_file = "";
-  action.args[0] = NULL;
+  action.args[0] = NULL; 
   char* input;
   char flag = '0';
   action.arg_count = 0;
   action.foreground = 1;
   while ((input = strtok(NULL, " \n")) != NULL){
-    char* trans_input = translate(input);
     if(flag == '<'){
-      action.in_file = trans_input;
+      action.in_file = input;
       flag = 0;
     }
     else if(flag == '>'){
-      action.out_file = trans_input;
+      action.out_file = input;
       flag = 0;
     }
     else if(strcmp(input, ">") == 0){flag = '>';}
@@ -162,7 +159,8 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
     }
     else{
       if (action.arg_count < 512){
-        action.args[action.arg_count] = trans_input;
+        input = translate(input);
+        action.args[action.arg_count] = input;
         action.arg_count += 1;
       }
       else{
@@ -288,5 +286,8 @@ int main(void) {
     printf("%s", background_messages);
     fflush(stdout);
     background_messages[0] = '\0';
+    for (int i; i < action.arg_count; i ++){
+      free(action.args[i]);
+    }
   }
 }
