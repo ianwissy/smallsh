@@ -14,7 +14,7 @@ int foreground_only = 0;
 struct user_action{
   char* command;
   char* in_file;
-  char* out_file;
+  char* out_file; 
   char* args[512];
   int foreground;
   int arg_count;
@@ -221,13 +221,11 @@ int new_process(struct user_action action, struct status *status){
         fflush(stdout);
         struct sigaction SIGCHLD_action = {0};
         SIGCHLD_action.sa_handler = handle_SIGCHILD;
-	      SIGCHLD_action.sa_flags = SA_RESTART;
+	      SIGCHLD_action.sa_flags = SA_RESTART|SA_RESETHAND;
         sigaction(SIGCHLD, &SIGCHLD_action, NULL);
       }
       break;
   }
-  printf("%s", background_messages);
-  background_messages[0] = '\0';
   return(0);
 }
   
@@ -247,9 +245,11 @@ int run_action(struct user_action action, struct status *status){
   else if (strcmp(action.command, "status") == 0){
     if ((*status).type == 0){
       printf("%s %i\n", "exit value", (*status).value);
+      fflush(stdout);
     }
     else {
       printf("%s %i\n", "terminated by signal", (*status).value);
+      fflush(stdout);
     }
   }
   else{
@@ -281,5 +281,8 @@ int main(void) {
       action = process_buffer(input_buffer, action);
       run_action(action, &status);
     }
+    printf("%s", background_messages);
+    fflush(stdout);
+    background_messages[0] = '\0';
   }
 }
