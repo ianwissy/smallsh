@@ -9,6 +9,7 @@
 #include <errno.h>
 
 char background_messages[400] = "";
+int foreground_only = 0;
 
 struct user_action{
   char* command;
@@ -17,12 +18,27 @@ struct user_action{
   char* args[512];
   int foreground;
   int arg_count;
-}; 
+};   
 
 struct status{
   int type;
   int value;
 };
+
+void handle_SIGINT(int signo){
+  exit(1);
+}
+
+void handle_SIGTSTP(int signo){
+  if (foreground_only == 0){
+    foreground_only = 1;
+    write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n: ", 52);
+  }
+  else {
+    foreground_only = 0;
+    write(STDOUT_FILENO, "\nExiting foreground-only mode\n: ", 32);
+  }
+}
 
 void handle_SIGCHILD(int signo){
   int status;
@@ -128,7 +144,11 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
     }
     else if(strcmp(input, ">") == 0){flag = '>';}
     else if(strcmp(input, "<") == 0){flag = '<';}
-    else if(strcmp(input, "&") == 0){action.foreground = 0;}
+    else if(strcmp(input, "&") == 0){
+      if (foreground_only == 0){
+        action.foreground = 0;
+      }
+    }
     else{
       if (action.arg_count < 512){
         action.args[action.arg_count] = trans_input;
@@ -156,6 +176,15 @@ int new_process(struct user_action action, struct status *status){
       break;
     case 0:
       redirect(action);
+      struct sigaction SIGTSTP_action = {0};
+      SIGTSTP_action.sa_handler = SIG_IGN;
+      sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+      if (action.foreground != 0){
+        struct sigaction SIGINT_action = {0};
+        SIGINT_action.sa_handler = handle_SIGCHILD;
+	      SIGINT_action.sa_flags = SA_RESTART;
+        sigaction(SIGINT, &SIGINT_action, NULL);
+      }
       arg_vec[0] = action.command;
       for (int i = 0; i < action.arg_count; i++ ){
         arg_vec[i+1] = action.args[i];
@@ -176,6 +205,7 @@ int new_process(struct user_action action, struct status *status){
         else{
           (*status).type = 1;
 		      (*status).value = WTERMSIG(childStatus);
+          printf("%s %d\n", "terminated by signal", WTERMSIG(childStatus));
 	      }
       }
       else {
@@ -221,6 +251,16 @@ int run_action(struct user_action action, struct status *status){
 }
 
 int main(void) {
+  
+  struct sigaction SIGINT_inaction = {0};
+  SIGINT_inaction.sa_handler = SIG_IGN;
+  sigaction(SIGINT, &SIGINT_inaction, NULL);
+
+  struct sigaction SIGTSTP_action;
+  SIGTSTP_action.sa_handler = handle_SIGTSTP;
+  SIGTSTP_action.sa_flags = SA_RESTART;
+  sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+  
   struct status status;
   status.value = 0;
   status.type = 0;
