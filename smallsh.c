@@ -138,6 +138,7 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   action.command = strtok(input_buffer, " \n");
   action.in_file = "";
   action.out_file = "";
+  action.args[0] = NULL;
   char* input;
   char flag = '0';
   action.arg_count = 0;
@@ -276,6 +277,7 @@ int main(void) {
   status.type = 0;
   while (1){
     printf("%c ", ':');
+    fflush(stdout);
     char input_buffer[2048];
     struct user_action action;
     fgets(input_buffer, 2048, stdin);
