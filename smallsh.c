@@ -64,7 +64,7 @@ int redirect(struct user_action action){
     in_file = open(action.in_file, O_RDONLY);
     if (in_file == -1){
       printf("%s %i\n", "File open failed with error", errno);
-      return 1;
+      exit(1);
     }
     dup2(in_file, STDIN_FILENO);
   }
@@ -76,7 +76,7 @@ int redirect(struct user_action action){
     out_file = open(action.out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
     if (out_file == -1){
       printf("%s %i\n", "File open failed with error", errno);
-      return 1;
+      exit(1);
     }
     dup2(out_file, STDOUT_FILENO);
   }
@@ -183,11 +183,7 @@ int new_process(struct user_action action, struct status *status){
       exit(1);
       break;
     case 0:
-      if (redirect(action) == 1){
-        printf("%s", background_messages);
-        background_messages[0] = '\0';
-        return 1;
-      }
+      redirect(action);
       struct sigaction SIGTSTP_action = {0};
       SIGTSTP_action.sa_handler = SIG_IGN;
       sigaction(SIGTSTP, &SIGTSTP_action, NULL);
