@@ -5,6 +5,10 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <math.h>
+#include <signal.h>
+#include <errno.h>
+
+char background_messages[400] = "";
 
 struct user_action{
   char* command;
@@ -14,6 +18,50 @@ struct user_action{
   int foreground;
   int arg_count;
 }; 
+
+struct status{
+  int type;
+  int value;
+};
+
+void handle_SIGCHILD(int signo){
+  int status;
+  char message[60];
+  pid_t pid;
+  pid = waitpid(0, &status, WNOHANG);
+  if (pid != -1 && pid != 0){
+    if(WIFEXITED(status)){
+		  sprintf(message, "background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
+	  } 
+    else{
+		  sprintf(message,"background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
+	  }
+  }
+  strcat(background_messages, message);
+}
+
+
+int redirect(struct user_action action){
+  int in_file;
+  int out_file;
+  if (strcmp(action.in_file, "") != 0){
+    in_file = open(action.in_file, O_RDONLY);
+    dup2(in_file, STDIN_FILENO);
+  }
+  else if (action.foreground == 0){
+    in_file = open("/dev/null", O_RDONLY);
+    dup2(in_file, STDIN_FILENO);
+  }
+  if (strcmp(action.out_file, "") != 0){
+    out_file = open(action.out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
+    dup2(out_file, STDOUT_FILENO);
+  }
+  else if (action.foreground == 0){
+    out_file = open("/dev/null", O_WRONLY);
+    dup2(out_file, STDOUT_FILENO);
+  }
+  return 0;
+}
 
 char* translate(char* input_word) {
   char* strstr_input;
@@ -75,18 +123,12 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
       flag = 0;
     }
     else if(flag == '>'){
-       action.out_file = trans_input;
+      action.out_file = trans_input;
       flag = 0;
     }
-    else if(strcmp(input, ">") == 0){
-      flag = '>';
-    }
-    else if(strcmp(input, "<") == 0){
-      flag = '<';
-    }
-    else if(strcmp(input, "&") == 0){
-      action.foreground = 0;
-    }
+    else if(strcmp(input, ">") == 0){flag = '>';}
+    else if(strcmp(input, "<") == 0){flag = '<';}
+    else if(strcmp(input, "&") == 0){action.foreground = 0;}
     else{
       if (action.arg_count < 512){
         action.args[action.arg_count] = trans_input;
@@ -102,21 +144,9 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   return action;
 }
 
-int new_process(struct user_action action){
+int new_process(struct user_action action, struct status *status){
   char* arg_vec[action.arg_count + 2];
   int childStatus;
-  int save_stdin = dup(STDIN_FILENO);
-  int save_stdout = dup(STDOUT_FILENO);
-  int in_file;
-  int out_file;
-  if (strcmp(action.in_file, "") != 0){
-    in_file = open(action.in_file, O_RDONLY);
-    dup2(in_file, STDIN_FILENO);
-  }
-  if (strcmp(action.out_file, "") != 0){
-    out_file = open(action.out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
-    dup2(out_file, STDOUT_FILENO);
-  }
   pid_t spawnPid = fork();
   switch (spawnPid){
     case -1:
@@ -125,42 +155,46 @@ int new_process(struct user_action action){
       exit(1);
       break;
     case 0:
+      redirect(action);
       arg_vec[0] = action.command;
       for (int i = 0; i < action.arg_count; i++ ){
         arg_vec[i+1] = action.args[i];
       }
       arg_vec[action.arg_count + 1] = NULL;
       execvp(action.command, arg_vec);
-      perror("execv");   /* execve() returns only on error */
+      perror("execv");/* execve() returns only on error */
       fflush(stderr);
 	    exit(EXIT_FAILURE);
       break;
     default:
-      if (action.foreground == 0){
-        spawnPid = waitpid(spawnPid, &childStatus, WNOHANG);
-      } 
+      if (action.foreground != 0){
+        waitpid(spawnPid, &childStatus, 0);
+        if(WIFEXITED(childStatus)){
+          (*status).type = 0;
+		      (*status).value = WEXITSTATUS(childStatus);
+	      } 
+        else{
+          (*status).type = 1;
+		      (*status).value = WTERMSIG(childStatus);
+	      }
+      }
       else {
-        spawnPid = waitpid(spawnPid, &childStatus, 0);
-      }
-      if (strcmp(action.out_file, "") != 0){
+        fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
         fflush(stdout);
-        close(out_file);
-        dup2(save_stdin, STDOUT_FILENO);
+        struct sigaction SIGCHLD_action = {0};
+        SIGCHLD_action.sa_handler = handle_SIGCHILD;
+	      SIGCHLD_action.sa_flags = SA_RESTART;
+        sigaction(SIGCHLD, &SIGCHLD_action, NULL);
       }
-      if (strcmp(action.in_file, "") != 0){
-        fflush(stdin);
-        close(in_file);
-        dup2(save_stdin, STDIN_FILENO);
-      }
-      close(save_stdin);
-      close(save_stdout);
       break;
   }
+  printf("%s", background_messages);
+  background_messages[0] = '\0';
   return(0);
 }
   
 
-int run_action(struct user_action action){
+int run_action(struct user_action action, struct status *status){
   if (strcmp(action.command, "exit") == 0){
     exit(0);
   }
@@ -173,15 +207,23 @@ int run_action(struct user_action action){
     }
   }
   else if (strcmp(action.command, "status") == 0){
-    printf("%i\n", 0);
+    if ((*status).type == 0){
+      printf("%s %i\n", "exit value", (*status).value);
+    }
+    else {
+      printf("%s %i\n", "terminated by signal", (*status).value);
+    }
   }
   else{
-    new_process(action);
+    new_process(action, status);
   }
   return(0);
 }
 
 int main(void) {
+  struct status status;
+  status.value = 0;
+  status.type = 0;
   while (1){
     printf("%c ", ':');
     char input_buffer[2048];
@@ -189,7 +231,7 @@ int main(void) {
     fgets(input_buffer, 2048, stdin);
     if (input_buffer[0] != '#' && input_buffer[0] != '\n'){
       action = process_buffer(input_buffer, action);
-      run_action(action);
+      run_action(action, &status);
     }
   }
 }
