@@ -63,14 +63,14 @@ char* int_to_str(int input){
 }
 
 void handle_SIGCHILD(int signo){
-  int status;
+  int child_status;
   pid_t pid;
-  pid = waitpid(0, &status, WNOHANG);
+  pid = waitpid(0, &child_status, WNOHANG);
   if (pid != -1 && pid != 0){
     char* pid_char = int_to_str(pid);
-    if(WIFEXITED(status)){
-      status = WEXITSTATUS(status);
-      char* status_char = int_to_str(status);
+    if(WIFEXITED(child_status)){
+      child_status = WEXITSTATUS(child_status);
+      char* status_char = int_to_str(child_status);
       fflush(stdout);
       strcat(background_messages, "background pid ");
       strcat(background_messages, pid_char);
@@ -80,7 +80,8 @@ void handle_SIGCHILD(int signo){
       free(status_char);
 	  } 
     else{
-      char* status_char = int_to_str(WTERMSIG(status));
+      child_status = WTERMSIG(child_status)
+      char* status_char = int_to_str(child_status);
       strcat(background_messages, "background pid ");
       strcat(background_messages, pid_char);
       strcat(background_messages, " is done: terminated by signal ");
@@ -254,6 +255,7 @@ int new_process(struct user_action action, struct status *status){
       }
       arg_vec[action.arg_count + 1] = NULL;
       execvp(action.command, arg_vec);
+      
       perror("execv");/* execve() returns only on error */
       fflush(stderr);
 	    exit(EXIT_FAILURE);
@@ -331,6 +333,7 @@ int main(void) {
   struct status status;
   status.value = 0;
   status.type = 0;
+  
   while (1){
     printf("%c ", ':');
     fflush(stdout);
