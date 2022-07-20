@@ -80,7 +80,7 @@ void handle_SIGCHILD(int signo){
       free(status_char);
 	  } 
     else{
-      child_status = WTERMSIG(child_status)
+      child_status = WTERMSIG(child_status);
       char* status_char = int_to_str(child_status);
       strcat(background_messages, "background pid ");
       strcat(background_messages, pid_char);
@@ -262,18 +262,20 @@ int new_process(struct user_action action, struct status *status){
       break;
     default:
       if (action.foreground == 0 && foreground_only == 0){
-        fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
+        printf("%s %i\n", "background pid is", spawnPid);
         fflush(stdout);
       }
       else {
         waitpid(spawnPid, &childStatus, 0);
         if(WIFEXITED(childStatus)){
           (*status).type = 0;
-		      (*status).value = WEXITSTATUS(childStatus);
+          childStatus = WEXITSTATUS(childStatus);
+		      (*status).value = childStatus;
 	      } 
         else{
           (*status).type = 1;
-		      (*status).value = WTERMSIG(childStatus);
+          childStatus = WTERMSIG(childStatus);
+		      (*status).value = childStatus;
           printf("%s %d\n", "terminated by signal", WTERMSIG(childStatus));
           fflush(stdout);
 	      }
