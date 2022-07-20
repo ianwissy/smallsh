@@ -50,7 +50,7 @@ char* int_to_str(int input){
     output_str[1] = '\0';
   }
   else{
-    str_len = (int) log10(input) + 1;
+    str_len = (int) log10(input);
     output_str = malloc(str_len + 1);
     for (int i = 0; i < str_len; i++){
       int out_digit = input % 10;
