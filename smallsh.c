@@ -51,7 +51,7 @@ char* int_to_str(int input){
   }
   else{
     str_len = (int) log10(input) + 1;
-    output_str = malloc(str_len);
+    output_str = malloc(str_len + 1);
     for (int i = 0; i < str_len; i++){
       int out_digit = input % 10;
       output_str[str_len - 1 - i] = ints[out_digit];
