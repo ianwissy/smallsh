@@ -241,7 +241,7 @@ int new_process(struct user_action action, struct status *status){
 	    exit(EXIT_FAILURE);
       break;
     default:
-      if (action.foreground == 0){
+      if (action.foreground == 0 && foreground_only == 0){
         fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
         fflush(stdout);
       }
