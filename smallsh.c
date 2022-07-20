@@ -139,7 +139,6 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   action.args[0] = NULL; 
   char* input;
   char flag = '0';
-  action.arg_count = 0;
   action.foreground = 1;
   while ((input = strtok(NULL, " \n")) != NULL){
     if(flag == '<'){
@@ -278,6 +277,7 @@ int main(void) {
     fflush(stdout);
     char input_buffer[2048];
     struct user_action action;
+    action.arg_count = 0;
     fgets(input_buffer, 2048, stdin);
     if (input_buffer[0] != '#' && input_buffer[0] != '\n'){
       action = process_buffer(input_buffer, action);
@@ -286,7 +286,7 @@ int main(void) {
     printf("%s", background_messages);
     fflush(stdout);
     background_messages[0] = '\0';
-    for (int i; i < action.arg_count; i ++){
+    for (int i = 0; i < action.arg_count; i ++){
       free(action.args[i]);
     }
   }
