@@ -99,7 +99,8 @@ int redirect(struct user_action action){
   if (strcmp(action.in_file, "") != 0){
     in_file = open(action.in_file, O_RDONLY);
     if (in_file == -1){
-      printf("%s %i\n", "File open failed with error", errno);
+      fprintf(stderr, "%s %i\n", "File open failed with error", errno);
+      fflush(stderr);
       exit(1);
     }
     dup2(in_file, STDIN_FILENO);
@@ -111,7 +112,8 @@ int redirect(struct user_action action){
   if (strcmp(action.out_file, "") != 0){
     out_file = open(action.out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
     if (out_file == -1){
-      printf("%s %i\n", "File open failed with error", errno);
+      fprintf(stderr, "%s %i\n", "File open failed with error", errno);
+      fflush(stderr);
       exit(1);
     }
     dup2(out_file, STDOUT_FILENO);
@@ -221,6 +223,7 @@ int new_process(struct user_action action, struct status *status){
       
       struct sigaction SIGTSTP_action = {0};
       SIGTSTP_action.sa_handler = SIG_IGN;
+      SIGTSTP_action.sa_flags = SA_RESTART;
       sigaction(SIGTSTP, &SIGTSTP_action, NULL);
       
       if (action.foreground != 0){
@@ -255,6 +258,7 @@ int new_process(struct user_action action, struct status *status){
           (*status).type = 1;
 		      (*status).value = WTERMSIG(childStatus);
           printf("%s %d\n", "terminated by signal", WTERMSIG(childStatus));
+          fflush(stdout);
 	      }
       }
       break;
