@@ -75,7 +75,7 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, pid_char);
       strcat(background_messages, " is done: exit value ");
       strcat(background_messages, status_char);
-      strcat(background_messages, "\n");
+      strcat(background_messages, "\n\0");
       free(status_char);
 	  } 
     else{
@@ -84,7 +84,7 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, pid_char);
       strcat(background_messages, " is done: terminated by signal ");
       strcat(background_messages, status_char);
-      strcat(background_messages, "\n");
+      strcat(background_messages, "\n\0");
       free(status_char);
 	  }
   free(pid_char);
