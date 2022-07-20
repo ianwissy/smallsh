@@ -298,6 +298,7 @@ int main(void) {
   sigaction(SIGINT, &SIGINT_inaction, NULL);
 
   struct sigaction SIGTSTP_action;
+  sigfillset(&SIGTSTP_action.sa_mask);
   SIGTSTP_action.sa_handler = handle_SIGTSTP;
   SIGTSTP_action.sa_flags = SA_RESTART;
   sigaction(SIGTSTP, &SIGTSTP_action, NULL);
