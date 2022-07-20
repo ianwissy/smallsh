@@ -32,11 +32,11 @@ void handle_SIGINT(int signo){
 void handle_SIGTSTP(int signo){
   if (foreground_only == 0){
     foreground_only = 1;
-    write(STDOUT_FILENO, "Entering foreground-only mode (& is now ignored)\n: ", 52);
+    write(STDOUT_FILENO, "Entering foreground-only mode (& is now ignored)\n: ", 51);
   }
   else {
     foreground_only = 0;
-    write(STDOUT_FILENO, "Exiting foreground-only mode\n: ", 32);
+    write(STDOUT_FILENO, "Exiting foreground-only mode\n: ", 31);
   }
 }
 
@@ -177,6 +177,21 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   char flag = '0';
   action.foreground = 1;
   while ((input = strtok(NULL, " \n")) != NULL){
+    
+    if (action.foreground == 0){
+      action.foreground = 1;
+      if (action.arg_count < 512){
+        char* persand = translate("&");
+        action.args[action.arg_count] = persand;
+        action.arg_count += 1;
+      }
+      else{
+        fprintf(stderr,"%s\n", "Too many arguments");
+        fflush(stderr);
+        exit(1);
+      }
+    }
+    
     if(flag == '<'){
       action.in_file = input;
       flag = 0;
