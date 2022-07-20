@@ -64,7 +64,7 @@ char* int_to_str(int input){
 void handle_SIGCHILD(int signo){
   int status;
   pid_t pid;
-  pid = waitpid(0, &status, 0);
+  pid = waitpid(0, &status, WNOHANG);
   if (pid != -1 && pid != 0){
     char* pid_char = int_to_str(pid);
     if(WIFEXITED(status)){
@@ -217,15 +217,18 @@ int new_process(struct user_action action, struct status *status){
       break;
     case 0:
       redirect(action);
+      
       struct sigaction SIGTSTP_action = {0};
       SIGTSTP_action.sa_handler = SIG_IGN;
       sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+      
       if (action.foreground != 0){
         struct sigaction SIGINT_action = {0};
         SIGINT_action.sa_handler = handle_SIGCHILD;
 	      SIGINT_action.sa_flags = SA_RESTART;
         sigaction(SIGINT, &SIGINT_action, NULL);
       }
+      
       arg_vec[0] = action.command;
       for (int i = 0; i < action.arg_count; i++ ){
         arg_vec[i+1] = action.args[i];
@@ -252,10 +255,6 @@ int new_process(struct user_action action, struct status *status){
       else {
         fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
         fflush(stdout);
-        struct sigaction SIGCHLD_action = {0};
-        SIGCHLD_action.sa_handler = handle_SIGCHILD;
-	      SIGCHLD_action.sa_flags = SA_RESTART|SA_RESETHAND;
-        sigaction(SIGCHLD, &SIGCHLD_action, NULL);
       }
       break;
   }
@@ -301,6 +300,11 @@ int main(void) {
   SIGTSTP_action.sa_handler = handle_SIGTSTP;
   SIGTSTP_action.sa_flags = SA_RESTART;
   sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+  struct sigaction SIGCHLD_action = {0};
+  SIGCHLD_action.sa_handler = handle_SIGCHILD;
+	SIGCHLD_action.sa_flags = SA_RESTART;
+  sigaction(SIGCHLD, &SIGCHLD_action, NULL);
   
   struct status status;
   status.value = 0;
