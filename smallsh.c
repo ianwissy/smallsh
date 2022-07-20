@@ -241,7 +241,11 @@ int new_process(struct user_action action, struct status *status){
 	    exit(EXIT_FAILURE);
       break;
     default:
-      if (action.foreground != 0){
+      if (action.foreground == 0){
+        fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
+        fflush(stdout);
+      }
+      else {
         waitpid(spawnPid, &childStatus, 0);
         if(WIFEXITED(childStatus)){
           (*status).type = 0;
@@ -252,10 +256,6 @@ int new_process(struct user_action action, struct status *status){
 		      (*status).value = WTERMSIG(childStatus);
           printf("%s %d\n", "terminated by signal", WTERMSIG(childStatus));
 	      }
-      }
-      else {
-        fprintf(stdout, "%s %i\n", "background pid is", spawnPid);
-        fflush(stdout);
       }
       break;
   }
