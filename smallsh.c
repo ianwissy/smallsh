@@ -225,7 +225,7 @@ int new_process(struct user_action action, struct status *status){
       
       if (action.foreground != 0){
         struct sigaction SIGINT_action = {0};
-        SIGINT_action.sa_handler = handle_SIGCHILD;
+        SIGINT_action.sa_handler = handle_SIGINT;
 	      SIGINT_action.sa_flags = SA_RESTART;
         sigaction(SIGINT, &SIGINT_action, NULL);
       }
