@@ -40,22 +40,55 @@ void handle_SIGTSTP(int signo){
   }
 }
 
+char* int_to_str(int input){
+  char * ints = "0123456789";
+  int str_len;
+  char * output_str;
+  if (input == 0){
+    output_str = malloc(2);
+    output_str[0] = '0';
+    output_str[1] = '\0';
+  }
+  else{
+    str_len = (int) log10(input) + 1;
+    output_str = malloc(str_len);
+    for (int i = 0; i < str_len; i++){
+      int out_digit = input % 10;
+      output_str[str_len - 1 - i] = ints[out_digit];
+      input = (input - out_digit) / 10;
+    }
+  }
+  return output_str;
+}
+
 void handle_SIGCHILD(int signo){
   int status;
-  char message[60];
   pid_t pid;
   pid = waitpid(0, &status, 0);
   if (pid != -1 && pid != 0){
+    char* pid_char = int_to_str(pid);
     if(WIFEXITED(status)){
-      strcat(background_messages, "background pid %d is done: exit value %d\n");
-		  //sprintf(message, "background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
+      status = WEXITSTATUS(status);
+      char* status_char = int_to_str(status);
+      fflush(stdout);
+      strcat(background_messages, "background pid ");
+      strcat(background_messages, pid_char);
+      strcat(background_messages, " is done: exit value ");
+      strcat(background_messages, status_char);
+      strcat(background_messages, "\n");
+      free(status_char);
 	  } 
     else{
-      strcat(background_messages, "background pid %d is done: terminated by signal %d\n");
-		  //sprintf(message,"background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
+      char* status_char = int_to_str(WTERMSIG(status));
+      strcat(background_messages, "background pid ");
+      strcat(background_messages, pid_char);
+      strcat(background_messages, " is done: terminated by signal ");
+      strcat(background_messages, status_char);
+      strcat(background_messages, "\n");
+      free(status_char);
 	  }
+  free(pid_char);
   }
-  //strcat(background_messages, message);
 }
 
 
