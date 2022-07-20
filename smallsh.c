@@ -57,6 +57,7 @@ char* int_to_str(int input){
       output_str[str_len - 1 - i] = ints[out_digit];
       input = (input - out_digit) / 10;
     }
+    output_str[str_len] = '\0';
   }
   return output_str;
 }
@@ -75,7 +76,7 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, pid_char);
       strcat(background_messages, " is done: exit value ");
       strcat(background_messages, status_char);
-      strcat(background_messages, "\n\0");
+      strcat(background_messages, "\n");
       free(status_char);
 	  } 
     else{
@@ -84,7 +85,7 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, pid_char);
       strcat(background_messages, " is done: terminated by signal ");
       strcat(background_messages, status_char);
-      strcat(background_messages, "\n\0");
+      strcat(background_messages, "\n");
       free(status_char);
 	  }
   free(pid_char);
