@@ -32,11 +32,11 @@ void handle_SIGINT(int signo){
 void handle_SIGTSTP(int signo){
   if (foreground_only == 0){
     foreground_only = 1;
-    write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n: ", 52);
+    write(STDOUT_FILENO, "Entering foreground-only mode (& is now ignored)\n: ", 52);
   }
   else {
     foreground_only = 0;
-    write(STDOUT_FILENO, "\nExiting foreground-only mode\n: ", 32);
+    write(STDOUT_FILENO, "Exiting foreground-only mode\n: ", 32);
   }
 }
 
