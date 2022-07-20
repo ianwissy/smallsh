@@ -305,6 +305,7 @@ int main(void) {
 
   struct sigaction SIGCHLD_action = {0};
   SIGCHLD_action.sa_handler = handle_SIGCHILD;
+  sigfillset(&SIGCHLD_action.sa_mask);
 	SIGCHLD_action.sa_flags = SA_RESTART;
   sigaction(SIGCHLD, &SIGCHLD_action, NULL);
   
