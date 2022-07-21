@@ -63,11 +63,16 @@ char* int_to_str(int input){
   char * ints = "0123456789";
   int str_len;
   char * output_str;
+
+  // Case for input = 0. 
   if (input == 0){
     output_str = malloc(2);
     output_str[0] = '0';
     output_str[1] = '\0';
   }
+
+  // Case for input < 0. Converts to positive, converts the positive
+  // value to string, then appends a '-' at the front of the string.
   else if(input < 0){
     input = -1 * input;
     str_len = (int) log10(input) + 2;
@@ -80,6 +85,7 @@ char* int_to_str(int input){
     output_str[0] = '-';
     output_str[str_len + 1] = '\0';
   }
+  // Case for input > 0. Basic converstion. 
   else{
     str_len = (int) log10(input) + 1;
     output_str = malloc(str_len + 1);
@@ -103,8 +109,12 @@ void handle_SIGCHILD(int signo){
   int child_status;
   pid_t pid;
   pid = waitpid(-1, &child_status, WNOHANG);
+  // Ignore cases where waitpid returns an error or
+  // no process has ended. 
   if (pid != -1 && pid != 0){
+    // Convert pid int to string
     char* pid_char = int_to_str(pid);
+    // Write exit value to background_messages
     if(WIFEXITED(child_status)){
       child_status = WEXITSTATUS(child_status);
       char* status_char = int_to_str(child_status);
@@ -114,8 +124,10 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, " is done: exit value ");
       strcat(background_messages, status_char);
       strcat(background_messages, "\n");
+      // Free status_char malloc allocated in string conversion
       free(status_char);
 	  } 
+    // Write termination signal to to background_messages
     else{
       child_status = WTERMSIG(child_status);
       char* status_char = int_to_str(child_status);
@@ -124,8 +136,10 @@ void handle_SIGCHILD(int signo){
       strcat(background_messages, " is done: terminated by signal ");
       strcat(background_messages, status_char);
       strcat(background_messages, "\n");
+      // Free status_char malloc allocated in string conversion
       free(status_char);
 	  }
+  // Free pid_char malloc allocated in string conversion function
   free(pid_char);
   }
 }
@@ -243,17 +257,11 @@ char* translate(char* input_word) {
 struct user_action process_buffer(char* input_buffer, struct user_action action){
   // Get the command from the buffer and store it in action.command.
   action.command = strtok(input_buffer, " \n");
-  // Initilize infile and outfile for comparison in new_process.
-  action.in_file = "";
-  action.out_file = "";
-  // Intilize first argument to NULL for comparision in run_action.
-  action.args[0] = NULL; 
   char* input;
   // flag variable is used to determine if last character was special
   // character < or > so input can be directed to in_file or out_file 
   // respectively. 
   char flag = '0';
-  action.foreground = 1;
   while ((input = strtok(NULL, " \n")) != NULL){
     // This boolean handles the case of & key as a (non-final) argument
     // If an & set the action to background, resets it to foreground
@@ -474,6 +482,7 @@ int main(void) {
   struct status status;
   status.value = 0;
   status.type = 0;
+  struct user_action action;
   
   while (1){
     // Write new line prompt to STDOUT.
@@ -483,10 +492,14 @@ int main(void) {
     // Intitilize input buffer 
     char input_buffer[2049];
 
-    // Reinitilize action each time the while loop 
-    struct user_action action;
+    // Intilize action default values. 
+    action.foreground = 1;
+    action.command = "";
+    action.args[0] = NULL; 
     action.arg_count = 0;
-
+    action.in_file = "";
+    action.out_file = "";
+    
     // get information from user and call process_buffer
     // and run action to execute the user's command. 
     fgets(input_buffer, 2048, stdin);
@@ -501,6 +514,7 @@ int main(void) {
     fflush(stdout);
     // reset the background messages to print an empty string.
     background_messages[0] = '\0';
+    
     // free mallocs allocated in the translate function.
     for (int i = 0; i < action.arg_count; i ++){
       free(action.args[i]);
