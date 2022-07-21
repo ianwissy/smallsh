@@ -498,14 +498,14 @@ int main(void) {
   status.value = 0;
   status.type = 0;
   struct user_action action;
+
+  // Intitilize input buffer 
+  char input_buffer[2049];
   
   while (1){
     // Write new line prompt to STDOUT.
     printf("%c ", ':');
     fflush(stdout);
-
-    // Intitilize input buffer 
-    char input_buffer[2049];
 
     // Intilize action default values. 
     action.foreground = 1;
