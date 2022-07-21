@@ -152,13 +152,13 @@ void handle_SIGCHILD(int signo){
 // If there is a specified input a/or output file from the user action, 
 // stdin/out is redirected there, otherwise they are redirected to /dev/null
 // if the process is a background process. 
-int redirect(struct user_action action){
+int redirect(struct user_action *action){
   int in_file;
   int out_file;
 
   // Redirect input stream if applicable. 
-  if (strcmp(action.in_file, "") != 0){
-    in_file = open(action.in_file, O_RDONLY);
+  if (strcmp((*action).in_file, "") != 0){
+    in_file = open((*action).in_file, O_RDONLY);
     if (in_file == -1){
       fprintf(stderr, "%s %i\n", "File open failed with error", errno);
       fflush(stderr);
@@ -166,14 +166,14 @@ int redirect(struct user_action action){
     }
     dup2(in_file, STDIN_FILENO);
   }
-  else if (action.foreground == 0){
+  else if ((*action).foreground == 0){
     in_file = open("/dev/null", O_RDONLY);
     dup2(in_file, STDIN_FILENO);
   }
 
   // Redirect output stream if applicable.
-  if (strcmp(action.out_file, "") != 0){
-    out_file = open(action.out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
+  if (strcmp((*action).out_file, "") != 0){
+    out_file = open((*action).out_file, O_WRONLY|O_TRUNC|O_CREAT, 0777);
     if (out_file == -1){
       fprintf(stderr, "%s %i\n", "File open failed with error", errno);
       fflush(stderr);
@@ -181,7 +181,7 @@ int redirect(struct user_action action){
     }
     dup2(out_file, STDOUT_FILENO);
   }
-  else if (action.foreground == 0){
+  else if ((*action).foreground == 0){
     out_file = open("/dev/null", O_WRONLY);
     dup2(out_file, STDOUT_FILENO);
   }
@@ -262,9 +262,9 @@ char* translate(char* input_word) {
 // Function to convert the inputs from the user into commands, arguments, 
 // input and output files, and determine if the command should be run in
 // the foreground or background. 
-struct user_action process_buffer(char* input_buffer, struct user_action action){
+int process_buffer(char* input_buffer, struct user_action *action){
   // Get the command from the buffer and store it in action.command.
-  action.command = strtok(input_buffer, " \n");
+  (*action).command = strtok(input_buffer, " \n");
   char* input;
   // flag variable is used to determine if last character was special
   // character < or > so input can be directed to in_file or out_file 
@@ -276,11 +276,11 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
     // and adds & to the argument array.
     if (flag == '&'){
       flag = '0';
-      action.foreground = 1;
-      if (action.arg_count < 512){
+      (*action).foreground = 1;
+      if ((*action).arg_count < 512){
         char* persand = translate("&");
-        action.args[action.arg_count] = persand;
-        action.arg_count += 1;
+        (*action).args[(*action).arg_count] = persand;
+        (*action).arg_count += 1;
       }
       else{
         fprintf(stderr,"%s\n", "Too many arguments");
@@ -294,28 +294,28 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
     // If most recent character was < or >, sends the current input 
     // to action.in_file or action.out_file respectively.
     else if(flag == '<'){
-      action.in_file = input;
+      (*action).in_file = input;
       flag = 0;
     }
     else if(flag == '>'){
-      action.out_file = input;
+      (*action).out_file = input;
       flag = 0;
     }
     // Sets the action to background mode if foreground_only
     // is not set, and sets the flag to '&'.
     else if(strcmp(input, "&") == 0){
       if (foreground_only == 0){
-        action.foreground = 0;
+        (*action).foreground = 0;
       }
       flag = '&';
     }
     // Writes arguments to the argument array, up to 
     // a maximum of 512.
     else{
-      if (action.arg_count < 512){
+      if ((*action).arg_count < 512){
         input = translate(input);
-        action.args[action.arg_count] = input;
-        action.arg_count += 1;
+        (*action).args[(*action).arg_count] = input;
+        (*action).arg_count += 1;
       }
       else{
         fprintf(stderr,"%s\n", "Too many arguments");
@@ -324,15 +324,15 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
       }
     }
   }
-  return action;
+  return 0;
 }
 
 
 
 // This function is called when the input command must be run via
 // exec. 
-int new_process(struct user_action action, struct status *status){
-  char* arg_vec[action.arg_count + 2];
+int new_process(struct user_action *action, struct status *status){
+  char* arg_vec[(*action).arg_count + 2];
   int childStatus;
   // fork a new process for command to be executed in. 
   pid_t spawnPid = fork();
@@ -358,7 +358,7 @@ int new_process(struct user_action action, struct status *status){
 
       // If process is a foreground process, set it to 
       // exit when it recieves SIGINT. 
-      if (action.foreground == 1){
+      if ((*action).foreground == 1){
         struct sigaction SIGINT_action = {0};
         SIGINT_action.sa_handler = SIG_DFL;
 	      SIGINT_action.sa_flags = SA_RESTART;
@@ -368,12 +368,12 @@ int new_process(struct user_action action, struct status *status){
       // Transfer command and arguments to an argument
       // array to be sent to execvp. Null the last element of
       // the argument array, and run execvp to execute the command.
-      arg_vec[0] = action.command;
-      for (int i = 0; i < action.arg_count; i++ ){
-        arg_vec[i+1] = action.args[i];
+      arg_vec[0] = (*action).command;
+      for (int i = 0; i < (*action).arg_count; i++ ){
+        arg_vec[i+1] = (*action).args[i];
       }
-      arg_vec[action.arg_count + 1] = NULL;
-      execvp(action.command, arg_vec);
+      arg_vec[(*action).arg_count + 1] = NULL;
+      execvp((*action).command, arg_vec);
 
       // error handling for exec.
       perror("execvp");
@@ -383,7 +383,7 @@ int new_process(struct user_action action, struct status *status){
     
     default:
       // Print output message if process being executed in background.
-      if (action.foreground == 0 && foreground_only == 0){
+      if ((*action).foreground == 0 && foreground_only == 0){
         printf("%s %i\n", "background pid is", spawnPid);
         fflush(stdout);
       }
@@ -416,29 +416,29 @@ int new_process(struct user_action action, struct status *status){
 // Function to run commands sent by the user. If the command is one 
 // of the three basic commands, they are run within this function, 
 // otherwise new_process is called. 
-int run_action(struct user_action action, struct status *status){
+int run_action(struct user_action *action, struct status *status){
 
   // exit command for the program. Exits exit code 0. 
-  if (strcmp(action.command, "exit") == 0){
+  if (strcmp((*action).command, "exit") == 0){
     exit(0);
   }
 
   // Processes change directory commands. If no arguments are given,
   // moves to home directory. Otherwise moves to directory given by 
   // first argument, if that directory exists.
-  else if (strcmp(action.command, "cd") == 0){
-    if (action.args[0] == NULL){
+  else if (strcmp((*action).command, "cd") == 0){
+    if ((*action).args[0] == NULL){
       chdir(getenv("HOME"));
     }
     else{
-      chdir(action.args[0]);
+      chdir((*action).args[0]);
     }
   }
 
   // Processes status command. Gets status information from the 
   // status structure, and prints the message associated with 
   // the exit status of the last exec foreground call. 
-  else if (strcmp(action.command, "status") == 0){
+  else if (strcmp((*action).command, "status") == 0){
     if ((*status).type == 0){
       printf("%s %i\n", "exit value", (*status).value);
       fflush(stdout);
@@ -519,8 +519,8 @@ int main(void) {
     // and run action to execute the user's command. 
     fgets(input_buffer, 2048, stdin);
     if (input_buffer[0] != '#' && input_buffer[0] != '\n'){
-      action = process_buffer(input_buffer, action);
-      run_action(action, &status);
+      process_buffer(input_buffer, &action);
+      run_action(&action, &status);
     }
 
     // Print messages from the SIGCHLD handler about
