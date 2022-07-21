@@ -99,6 +99,8 @@ char* int_to_str(int input){
   return output_str;
 }
 
+
+
 // Handler for SIGCHLD. It would be much shorter if sprintf
 // were reentrant. Foreground processes are caught first by
 // the waitpid in the new process function, so when they reach
@@ -108,7 +110,7 @@ char* int_to_str(int input){
 void handle_SIGCHILD(int signo){
   int child_status;
   pid_t pid;
-  pid = waitpid(-1, &child_status, WNOHANG);
+  pid = waitpid(0, &child_status, WNOHANG);
   // Ignore cases where waitpid returns an error or
   // no process has ended. 
   if (pid != -1 && pid != 0){
@@ -143,6 +145,8 @@ void handle_SIGCHILD(int signo){
   free(pid_char);
   }
 }
+
+
 
 // Function for redirecting input/output signals to their proper location.
 // If there is a specified input a/or output file from the user action, 
@@ -183,6 +187,8 @@ int redirect(struct user_action action){
   }
   return 0;
 }
+
+
 
 // Function for converting $$ to the pid of the parent process. 
 // CREATES MALLOCS THAT PERSIST THROUGH RETURN. THESE MUST BE FREED.
@@ -269,6 +275,7 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
     // If an & set the action to background, resets it to foreground
     // and adds & to the argument array.
     if (flag == '&'){
+      flag = '0';
       action.foreground = 1;
       if (action.arg_count < 512){
         char* persand = translate("&");
@@ -281,7 +288,6 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
         exit(1);
       }
     }
-    
     // Sets the flag to > or < when those characters appear.
     if(strcmp(input, ">") == 0){flag = '>';}
     else if(strcmp(input, "<") == 0){flag = '<';}
@@ -450,6 +456,8 @@ int run_action(struct user_action action, struct status *status){
   }
   return(0);
 }
+
+
 
 int main(void) {
 
