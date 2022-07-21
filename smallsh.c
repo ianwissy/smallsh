@@ -251,6 +251,8 @@ char* translate(char* input_word) {
   return new_word;
 }
 
+
+
 // Function to convert the inputs from the user into commands, arguments, 
 // input and output files, and determine if the command should be run in
 // the foreground or background. 
@@ -279,12 +281,13 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
         exit(1);
       }
     }
+    
     // Sets the flag to > or < when those characters appear.
-    else if(strcmp(input, ">") == 0){flag = '>';}
+    if(strcmp(input, ">") == 0){flag = '>';}
     else if(strcmp(input, "<") == 0){flag = '<';}
     // If most recent character was < or >, sends the current input 
     // to action.in_file or action.out_file respectively.
-    if(flag == '<'){
+    else if(flag == '<'){
       action.in_file = input;
       flag = 0;
     }
@@ -317,6 +320,8 @@ struct user_action process_buffer(char* input_buffer, struct user_action action)
   }
   return action;
 }
+
+
 
 // This function is called when the input command must be run via
 // exec. 
@@ -399,6 +404,8 @@ int new_process(struct user_action action, struct status *status){
   }
   return(0);
 }
+
+
   
 // Function to run commands sent by the user. If the command is one 
 // of the three basic commands, they are run within this function, 
